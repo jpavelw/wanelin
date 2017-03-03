@@ -1,3 +1,12 @@
 <resources>
     <string name="app_name">Wanelin</string>
+    <string name="lbl_upload_speed">Upload speed</string>
+    <string name="lbl_download_speed">Download speed</string>
+    <string name="btn_start">Start / Restart</string>
+    <string name="btn_stop">Stop</string>
+    <string name="lbl_file_name">File name. This is the name of the file that will be saved to the downloads folder</string>
+    <string name="hint_file_name">file name goes here</string>
+    <string name="btn_file_name_save">Save</string>
+    <string name="error_saving_file">Enter a file name</string>
+    <string name="error_empty_speed">Enter both upload and download speed</string>
 </resources>

@@ -2,9 +2,12 @@ package com.iste776.jpavelw.wanelin;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationManager;
+import android.os.Build;
+import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -16,12 +19,22 @@ import android.telephony.CellSignalStrengthLte;
 import android.telephony.PhoneStateListener;
 import android.telephony.SignalStrength;
 import android.telephony.TelephonyManager;
+import android.text.Editable;
+import android.text.InputType;
+import android.text.method.KeyListener;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.opencsv.CSVWriter;
+
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -32,43 +45,141 @@ public class MainActivity extends AppCompatActivity {
 
     private TelephonyManager telephonyManager;
     private PhoneStateListener phoneStateListener;
-    private TextView textView;
+    //private TextView textView;
+    private String fileName;
+    private String [] data = new String[11];
+    private Button btnStart, btnStop;
+    private EditText txtUploadSpeed, txtDownloadSpeed;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Button button = (Button) findViewById(R.id.button);
-        button.setOnClickListener(new View.OnClickListener() {
+        Intent intent = getIntent();
+        this.fileName = intent.getStringExtra(FileNameActivity.FILE_NAME_KEY);
+
+        this.btnStart = (Button) findViewById(R.id.btn_start);
+        this.btnStop = (Button) findViewById(R.id.btn_stop);
+        this.txtUploadSpeed = (EditText) findViewById(R.id.upload_speed_input);
+        this.txtDownloadSpeed = (EditText) findViewById(R.id.download_speed_input);
+
+        //this.btnStart.setEnabled(false);
+        this.btnStart.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if((ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) ||
+                if(ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED ||
                         ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED){
                     ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.READ_PHONE_STATE}, 1);
                 } else {
-                    if(doStuff()){
-                        //Toast.makeText(getApplicationContext(), "Got location", Toast.LENGTH_LONG).show();
+                    if(!txtUploadSpeed.getText().toString().trim().equals("") && !txtDownloadSpeed.getText().toString().trim().equals("")){
+                        if(!doStuff()){
+                            Toast.makeText(getApplicationContext(), "Failed location", Toast.LENGTH_LONG).show();
+                        }
                     } else {
-                        Toast.makeText(getApplicationContext(), "Failed location", Toast.LENGTH_LONG).show();
+                        Toast.makeText(getApplicationContext(), getString(R.string.error_empty_speed), Toast.LENGTH_LONG).show();
                     }
-                    if(!getStrength()){
+                    /*if(!getStrength()){
                         Toast.makeText(getApplicationContext(), "Failed signal", Toast.LENGTH_LONG).show();
                     }
+                    saveCSV();*/
                 }
             }
         });
-        this.textView = (TextView) findViewById(R.id.main_txt);
+
+        this.btnStop.setEnabled(false);
+
+        /*this.txtUploadSpeed.setOnKeyListener(new View.OnKeyListener() {
+            @Override
+            public boolean onKey(View view, int i, KeyEvent keyEvent) {
+                if((keyEvent.getAction() == KeyEvent.ACTION_UP) || (keyEvent.getAction() == KeyEvent.KEYCODE_DEL)){
+                    if(!txtUploadSpeed.getText().toString().trim().equals("") && !txtDownloadSpeed.getText().toString().trim().equals("")){
+                        btnStart.setEnabled(true);
+                    } else {
+                        btnStart.setEnabled(false);
+                    }
+                }
+                return false;
+            }
+        });
+
+        this.txtDownloadSpeed.setOnKeyListener(new View.OnKeyListener() {
+            @Override
+            public boolean onKey(View view, int i, KeyEvent keyEvent) {
+                if((keyEvent.getAction() == KeyEvent.ACTION_UP) || (keyEvent.getAction() == KeyEvent.KEYCODE_DEL)){
+                    if (!txtUploadSpeed.getText().toString().trim().equals("") && !txtDownloadSpeed.getText().toString().trim().equals("")) {
+                        btnStart.setEnabled(true);
+                    } else {
+                        btnStart.setEnabled(false);
+                    }
+                }
+                return false;
+            }
+        });*/
+
+        /*this.txtUploadSpeed.setKeyListener(new KeyListener() {
+            @Override
+            public int getInputType() { return 0; }
+
+            @Override
+            public boolean onKeyDown(View view, Editable editable, int i, KeyEvent keyEvent) { return false; }
+
+            @Override
+            public boolean onKeyUp(View view, Editable editable, int i, KeyEvent keyEvent) {
+                if(!txtUploadSpeed.getText().toString().trim().equals("") && !txtDownloadSpeed.getText().toString().trim().equals("")){
+                    btnStart.setEnabled(true);
+                }
+                else {
+                    btnStart.setEnabled(false);
+                }
+                return false;
+            }
+
+            @Override
+            public boolean onKeyOther(View view, Editable editable, KeyEvent keyEvent) { return false; }
+
+            @Override
+            public void clearMetaKeyState(View view, Editable editable, int i) {}
+        });
+
+        this.txtDownloadSpeed.setKeyListener(new KeyListener() {
+            @Override
+            public int getInputType() { return InputType.TYPE_CLASS_NUMBER; }
+
+            @Override
+            public boolean onKeyDown(View view, Editable editable, int i, KeyEvent keyEvent) { return false; }
+
+            @Override
+            public boolean onKeyUp(View view, Editable editable, int i, KeyEvent keyEvent) {
+                if(!txtUploadSpeed.getText().toString().trim().equals("") && !txtDownloadSpeed.getText().toString().trim().equals("")){
+                    btnStart.setEnabled(true);
+                } else {
+                    btnStart.setEnabled(false);
+                }
+                return false;
+            }
+
+            @Override
+            public boolean onKeyOther(View view, Editable editable, KeyEvent keyEvent) { return false; }
+
+            @Override
+            public void clearMetaKeyState(View view, Editable editable, int i) {}
+        });*/
+        //this.textView = (TextView) findViewById(R.id.main_txt);
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         if(grantResults.length == 2){
             if(grantResults[0] == PackageManager.PERMISSION_GRANTED){
-                if(this.doStuff()){
-                    Toast.makeText(getApplicationContext(), "Got location", Toast.LENGTH_LONG).show();
+                if(!txtUploadSpeed.getText().toString().trim().equals("") && !txtDownloadSpeed.getText().toString().trim().equals("")){
+                    if(this.doStuff()){
+                        Toast.makeText(getApplicationContext(), "Got location", Toast.LENGTH_LONG).show();
+                    } else {
+                        Toast.makeText(getApplicationContext(), "Failed location", Toast.LENGTH_LONG).show();
+                    }
                 } else {
-                    Toast.makeText(getApplicationContext(), "Failed location", Toast.LENGTH_LONG).show();
+                    Toast.makeText(getApplicationContext(), getString(R.string.error_empty_speed), Toast.LENGTH_LONG).show();
                 }
             }
             if(grantResults[1] == PackageManager.PERMISSION_GRANTED){
@@ -80,9 +191,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean doStuff(){
+        this.btnStop.setEnabled(true);
+        this.btnStart.setEnabled(false);
+
         DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         Date date = new Date();
-        textView.append(dateFormat.format(date) + "\n");
+        //textView.append(dateFormat.format(date) + "\n");
+        //data[0] - date
+        data[0] = dateFormat.format(date);
         LocationManager locationManager = (LocationManager) getApplicationContext().getSystemService(Context.LOCATION_SERVICE);
         Location location = null;
         try {
@@ -100,8 +216,14 @@ public class MainActivity extends AppCompatActivity {
             Log.e("MainActivity", "Fail to request location", e);
         }
         if(location != null){
-            textView.append("getLongitude " + String.valueOf(location.getLongitude()) + "\n");
-            textView.append("getLatitude " + String.valueOf(location.getLatitude()) + "\n");
+            //textView.append("getLongitude " + String.valueOf(location.getLongitude()) + "\n");
+            //textView.append("getLatitude " + String.valueOf(location.getLatitude()) + "\n");
+            //data[1] - getLongitude, data[2] - getLatitude
+            data[1] = String.valueOf(location.getLongitude());
+            data[2] = String.valueOf(location.getLatitude());
+            if(!getStrength()){
+                Toast.makeText(getApplicationContext(), "Failed signal", Toast.LENGTH_LONG).show();
+            }
         }
         return (location != null);
     }
@@ -115,9 +237,17 @@ public class MainActivity extends AppCompatActivity {
                 if (cellInfo instanceof CellInfoLte)
                 {
                     // cast to CellInfoLte and call all the CellInfoLte methods you need
-                    CellSignalStrengthLte signalStrengthLte = ((CellInfoLte)cellInfo).getCellSignalStrength();
-                    textView.append("LTE getDbm " + String.valueOf(signalStrengthLte.getDbm()) + "\n");
-                    textView.append("LTE getAsuLevel " + String.valueOf(signalStrengthLte.getAsuLevel()) + "\n");
+                    CellInfoLte cellInfoLte = (CellInfoLte) cellInfo;
+                    CellSignalStrengthLte signalStrengthLte = cellInfoLte.getCellSignalStrength();
+                    //textView.append("LTE getDbm " + String.valueOf(signalStrengthLte.getDbm()) + "\n");
+                    //textView.append("LTE getAsuLevel " + String.valueOf(signalStrengthLte.getAsuLevel()) + "\n");
+                    //data[3] - getDbm, data[4] - getAsuLevel
+                    data[3] = String.valueOf(signalStrengthLte.getDbm());
+                    data[4] = String.valueOf(signalStrengthLte.getAsuLevel());
+                    //textView.append("LTE getEarfcn " + String.valueOf(cellInfoLte.getCellIdentity().getEarfcn()) + "\n");
+                    /*if(Build.VERSION.SDK_INT == 24) {
+                        textView.append("LTE getEarfcn " + String.valueOf(cellInfoLte.getCellIdentity().getEarfcn()) + "\n");
+                    }*/
                     //Toast.makeText(getApplicationContext(), "Here " + String.valueOf(value), Toast.LENGTH_LONG).show();
                 }
             }
@@ -135,19 +265,27 @@ public class MainActivity extends AppCompatActivity {
                     //Toast.makeText(getApplicationContext(), "Point 1", Toast.LENGTH_LONG).show();
                     for (Method mthd : methods) {
                         if(mthd.getName().equals("getLteSignalStrength")){
-                            textView.append(mthd.getName() + " " + mthd.invoke(signalStrength) + "\n");
+                            //textView.append(mthd.getName() + " " + mthd.invoke(signalStrength) + "\n");
                         }
                         if(mthd.getName().equals("getLteRsrq")){
-                            textView.append(mthd.getName() + " " + mthd.invoke(signalStrength) + "\n");
+                            //data[5] - getDbm
+                            data[5] = String.valueOf(mthd.invoke(signalStrength));
+                            //textView.append(mthd.getName() + " " + mthd.invoke(signalStrength) + "\n");
                         }
                         if(mthd.getName().equals("getLteRsrp")){
-                            textView.append(mthd.getName() + " " + mthd.invoke(signalStrength) + "\n");
+                            //data[6] - getDbm
+                            data[6] = String.valueOf(mthd.invoke(signalStrength));
+                            ///textView.append(mthd.getName() + " " + mthd.invoke(signalStrength) + "\n");
                         }
                         if(mthd.getName().equals("getLteRssnr")){
-                            textView.append(mthd.getName() + " " + mthd.invoke(signalStrength) + "\n");
+                            //data[7] - getDbm
+                            data[7] = String.valueOf(mthd.invoke(signalStrength));
+                            //textView.append(mthd.getName() + " " + mthd.invoke(signalStrength) + "\n");
                         }
                         if (mthd.getName().equals("getLteCqi")) {
-                            textView.append(mthd.getName() + " " + mthd.invoke(signalStrength) + "\n");
+                            //data[8] - getDbm
+                            data[8] = String.valueOf(mthd.invoke(signalStrength));
+                            //textView.append(mthd.getName() + " " + mthd.invoke(signalStrength) + "\n");
                             //Toast.makeText(getApplicationContext(), mthd.getName() + " " + mthd.invoke(signalStrength), Toast.LENGTH_LONG).show();
                         }
                     }
@@ -171,5 +309,29 @@ public class MainActivity extends AppCompatActivity {
         //Toast.makeText(getApplicationContext(), String.valueOf(signalStrength), Toast.LENGTH_LONG).show();
         //textView.append("signalStrength " + String.valueOf(signalStrength) + "\n");
         this.telephonyManager.listen(this.phoneStateListener, PhoneStateListener.LISTEN_NONE);
+        //data[9] - uploadSpeed, data[10] - downlaodSpeed
+        this.data[9] = txtUploadSpeed.getText().toString();
+        this.data[10] = txtDownloadSpeed.getText().toString();
+        this.saveCSV();
+    }
+
+    private void saveCSV(){
+        String baseDir = android.os.Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath();
+        String filePath = baseDir + File.separator + this.fileName;
+        File f = new File(filePath);
+        CSVWriter writer;
+        try {
+            if(f.exists() && !f.isDirectory()){
+                writer = new CSVWriter(new FileWriter(filePath, true));
+            } else {
+                writer = new CSVWriter(new FileWriter(filePath));
+                String header [] = {"date", "getLongitude", "getLatitude", "getDbm", "getAsuLevel", "getLteRsrq", "getLteRsrp", "getLteRssnr", "getLteCqi", "uploadSpeed", "downlaodSpeed"};
+                writer.writeNext(header);
+            }
+            writer.writeNext(this.data);
+            writer.close();
+        } catch (IOException ex){
+            ex.printStackTrace();
+        }
     }
 }
