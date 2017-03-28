@@ -2,6 +2,7 @@
     <string name="app_name">Wanelin</string>
     <string name="lbl_upload_speed">Upload speed</string>
     <string name="lbl_download_speed">Download speed</string>
+    <string name="lbl_band">Band</string>
     <string name="btn_start">Start / Restart</string>
     <string name="btn_stop">Stop</string>
     <string name="lbl_file_name">File name. This is the name of the file that will be saved to the downloads folder</string>

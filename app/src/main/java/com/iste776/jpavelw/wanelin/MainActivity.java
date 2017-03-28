@@ -45,11 +45,13 @@ public class MainActivity extends AppCompatActivity {
 
     private TelephonyManager telephonyManager;
     private PhoneStateListener phoneStateListener;
-    //private TextView textView;
     private String fileName;
-    private String [] data = new String[11];
+    private String [] data = new String[12];
     private Button btnStart, btnStop;
-    private EditText txtUploadSpeed, txtDownloadSpeed;
+    private EditText txtUploadSpeed, txtDownloadSpeed, txtBand;
+    private boolean hasChanged = false;
+    private int lastDbm = 0;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
         this.btnStop = (Button) findViewById(R.id.btn_stop);
         this.txtUploadSpeed = (EditText) findViewById(R.id.upload_speed_input);
         this.txtDownloadSpeed = (EditText) findViewById(R.id.download_speed_input);
+        this.txtBand = (EditText) findViewById(R.id.band_input);
 
         //this.btnStart.setEnabled(false);
         this.btnStart.setOnClickListener(new View.OnClickListener() {
@@ -72,10 +75,17 @@ public class MainActivity extends AppCompatActivity {
                         ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED){
                     ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.READ_PHONE_STATE}, 1);
                 } else {
-                    if(!txtUploadSpeed.getText().toString().trim().equals("") && !txtDownloadSpeed.getText().toString().trim().equals("")){
-                        if(!doStuff()){
-                            Toast.makeText(getApplicationContext(), "Failed location", Toast.LENGTH_LONG).show();
-                        }
+                    if(!txtUploadSpeed.getText().toString().trim().equals("") && !txtDownloadSpeed.getText().toString().trim().equals("") && !txtBand.getText().toString().trim().equals("")){
+                        //while(!hasChanged){
+                            if(!doStuff()){
+                                Toast.makeText(getApplicationContext(), "Failed location", Toast.LENGTH_LONG).show();
+                            }
+                            /*try {
+                                Thread.sleep(3000);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }*/
                     } else {
                         Toast.makeText(getApplicationContext(), getString(R.string.error_empty_speed), Toast.LENGTH_LONG).show();
                     }
@@ -171,20 +181,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         if(grantResults.length == 2){
-            if(grantResults[0] == PackageManager.PERMISSION_GRANTED){
-                if(!txtUploadSpeed.getText().toString().trim().equals("") && !txtDownloadSpeed.getText().toString().trim().equals("")){
-                    if(this.doStuff()){
-                        Toast.makeText(getApplicationContext(), "Got location", Toast.LENGTH_LONG).show();
-                    } else {
+            if(grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED){
+                if(!txtUploadSpeed.getText().toString().trim().equals("") && !txtDownloadSpeed.getText().toString().trim().equals("") && !txtBand.getText().toString().trim().equals("")){
+                    if(!doStuff()){
                         Toast.makeText(getApplicationContext(), "Failed location", Toast.LENGTH_LONG).show();
                     }
                 } else {
                     Toast.makeText(getApplicationContext(), getString(R.string.error_empty_speed), Toast.LENGTH_LONG).show();
-                }
-            }
-            if(grantResults[1] == PackageManager.PERMISSION_GRANTED){
-                if(!getStrength()){
-                    Toast.makeText(getApplicationContext(), "Failed signal", Toast.LENGTH_LONG).show();
                 }
             }
         }
@@ -222,7 +225,8 @@ public class MainActivity extends AppCompatActivity {
             data[1] = String.valueOf(location.getLongitude());
             data[2] = String.valueOf(location.getLatitude());
             if(!getStrength()){
-                Toast.makeText(getApplicationContext(), "Failed signal", Toast.LENGTH_LONG).show();
+                //Toast.makeText(getApplicationContext(), "Failed signal", Toast.LENGTH_LONG).show();
+                Toast.makeText(getApplicationContext(), "Different BDM", Toast.LENGTH_LONG).show();
             }
         }
         return (location != null);
@@ -242,7 +246,13 @@ public class MainActivity extends AppCompatActivity {
                     //textView.append("LTE getDbm " + String.valueOf(signalStrengthLte.getDbm()) + "\n");
                     //textView.append("LTE getAsuLevel " + String.valueOf(signalStrengthLte.getAsuLevel()) + "\n");
                     //data[3] - getDbm, data[4] - getAsuLevel
-                    data[3] = String.valueOf(signalStrengthLte.getDbm());
+                    /*int currentDBm = signalStrengthLte.getDbm();
+                    if(currentDBm < (this.lastDbm - 5) || currentDBm > (this.lastDbm + 5)){
+                        this.lastDbm = currentDBm;
+                        this.hasChanged = true;
+                        return false;
+                    }*/
+                    data[3] = String.valueOf(this.lastDbm);
                     data[4] = String.valueOf(signalStrengthLte.getAsuLevel());
                     //textView.append("LTE getEarfcn " + String.valueOf(cellInfoLte.getCellIdentity().getEarfcn()) + "\n");
                     /*if(Build.VERSION.SDK_INT == 24) {
@@ -290,7 +300,9 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                     //Toast.makeText(getApplicationContext(), "Point 2", Toast.LENGTH_LONG).show();
-                } catch (Exception e) {}
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
 
                 //textView.append("signalStrength clean " + signalStrength.getGsmSignalStrength() + "\n");
                 stopListening((2 * signalStrength.getGsmSignalStrength()) - 113);
@@ -312,6 +324,7 @@ public class MainActivity extends AppCompatActivity {
         //data[9] - uploadSpeed, data[10] - downlaodSpeed
         this.data[9] = txtUploadSpeed.getText().toString();
         this.data[10] = txtDownloadSpeed.getText().toString();
+        this.data[11] = txtBand.getText().toString();
         this.saveCSV();
     }
 
@@ -325,7 +338,7 @@ public class MainActivity extends AppCompatActivity {
                 writer = new CSVWriter(new FileWriter(filePath, true));
             } else {
                 writer = new CSVWriter(new FileWriter(filePath));
-                String header [] = {"date", "getLongitude", "getLatitude", "getDbm", "getAsuLevel", "getLteRsrq", "getLteRsrp", "getLteRssnr", "getLteCqi", "uploadSpeed", "downlaodSpeed"};
+                String header [] = {"date", "longitude", "latitude", "dbm", "asuLevel", "lteRsrq", "lteRsrp", "lteRssnr", "lteCqi", "uploadSpeed", "downloadSpeed", "band"};
                 writer.writeNext(header);
             }
             writer.writeNext(this.data);
