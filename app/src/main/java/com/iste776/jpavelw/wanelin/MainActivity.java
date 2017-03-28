@@ -50,7 +50,7 @@ public class MainActivity extends AppCompatActivity {
     private Button btnStart, btnStop;
     private EditText txtUploadSpeed, txtDownloadSpeed, txtBand;
     private boolean hasChanged = false;
-    private int lastDbm = 0;
+    //private int lastDbm = 0;
 
 
     @Override
@@ -252,7 +252,8 @@ public class MainActivity extends AppCompatActivity {
                         this.hasChanged = true;
                         return false;
                     }*/
-                    data[3] = String.valueOf(this.lastDbm);
+                    //data[3] = String.valueOf(this.lastDbm);
+                    data[3] = String.valueOf(signalStrengthLte.getDbm());
                     data[4] = String.valueOf(signalStrengthLte.getAsuLevel());
                     //textView.append("LTE getEarfcn " + String.valueOf(cellInfoLte.getCellIdentity().getEarfcn()) + "\n");
                     /*if(Build.VERSION.SDK_INT == 24) {
